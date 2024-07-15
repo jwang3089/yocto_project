@@ -1,0 +1,109 @@
+ssh-keygen -t rsa -b 4096 -C "jwang4024@yahoo.com"
+ https://github.com/settings/tokens/new 
+TOKEN: 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
+
+
+git config --global user.name "Jack Wang"
+
+
+######## Download and build for ISO image
+
+git clone git://git.yoctoproject.org/poky.git
+cd poky
+git checkout -b kirkstone origin/kirkstone
+
+
+source oe-init-build-env
+
+
+MACHINE ?= "qemux86-64"
+
+sudo apt install zstd
+
+
+######## openembedded
+git clone git://git.openembedded.org/meta-openembedded
+cd meta-openembedded
+git checkout  kirkstone
+cd build
+bitbake-layers add-layer ../meta-openembedded/meta-oe
+bitbake-layers add-layer ../meta-openembedded/meta-python
+bitbake-layers add-layer ../meta-openembedded/meta-networking
+bitbake-layers add-layer ../meta-openembedded/meta-perl
+
+
+######## Perl 
+git clone git://github.com/meta-perl/meta-perl.git
+
+
+########  SECURE BOOT
+git clone git://git.yoctoproject.org/meta-security.git
+cd meta-security
+git checkout  kirkstone
+#
+cd build
+bitbake-layers add-layer ../meta-security
+
+git clone git@github.com:Wind-River/meta-secure-core.git
+cd meta-secure-core
+git checkout  kirkstone
+#
+cd buid
+bitbake-layers add-layer ../meta-secure-core/meta
+bitbake-layers add-layer ../meta-secure-core/meta-signing-key
+bitbake-layers add-layer ../meta-secure-core/meta-tpm
+bitbake-layers add-layer ../meta-secure-core/meta-tpm2
+bitbake-layers add-layer ../meta-secure-core/meta-efi-secure-boot
+bitbake-layers add-layer ../meta-secure-core/meta-integrity
+bitbake-layers add-layer ../meta-secure-core/meta-encrypted-storage
+
+
+bitbake core-image-sato
+
+
+IMAGE_FSTYPES += "iso"
+
+
+######## LOCAL.CONF ISO + SECURE BOOT
+# Configure local.conf for x86_64
+echo 'MACHINE ?= "qemux86-64"' >> conf/local.conf
+echo 'IMAGE_FSTYPES += "iso"' >> conf/local.conf
+echo 'SECURE_BOOT_ENABLE = "1"' >> conf/local.conf
+echo 'SECURE_BOOT_GENSIGN = "1"' >> conf/local.conf
+echo 'SECURE_BOOT_IMAGE_TYPES += "bios"' >> conf/local.conf
+echo 'SECURE_BOOT_SIGN_KEY_DIR = "/home/jack/SECURE_BOOT_KEYS"' >> conf/local.conf
+echo 'SECURE_BOOT_PK = "${SECURE_BOOT_SIGN_KEY_DIR}/PK.crt"' >> conf/local.conf
+echo 'SECURE_BOOT_KEK = "${SECURE_BOOT_SIGN_KEY_DIR}/KEK.crt"' >> conf/local.conf
+echo 'SECURE_BOOT_DB = "${SECURE_BOOT_SIGN_KEY_DIR}/db.crt"' >> conf/local.conf
+
+
+######## ON THE HOST Create Keys
+openssl req -new -x509 -newkey rsa:2048 -keyout PK.key -out PK.crt -days 3650 -subj "/CN=Platform Key/"
+openssl req -new -x509 -newkey rsa:2048 -keyout KEK.key -out KEK.crt -days 3650 -subj "/CN=Key Exchange Key/"
+openssl req -new -x509 -newkey rsa:2048 -keyout db.key -out db.crt -days 3650 -subj "/CN=Signature Database Key/"
+
+
+
+# Build the image
+bitbake core-image-sato
+
+# The ISO image will be in tmp/deploy/images/qemux86-64/
+
+
+
+### Shell environment set up for builds. ###
+
+You can now run 'bitbake <target>'
+
+Common targets are:
+    core-image-minimal
+    core-image-full-cmdline
+    core-image-sato
+    core-image-weston
+    meta-toolchain
+    meta-ide-support
+
+
+######## CRETA ISO IMAGE USING WIC
+# wic create mkefi --image-name core-image-minimal --bootimg-efi --kernel-efi --rootfs-dir=tmp/deploy/images/genericx86-64 --outdir=tmp/deploy/images/genericx86-64
+
