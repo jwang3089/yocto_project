@@ -23,6 +23,23 @@ SOLUTION:
 #### E:ERROR
 
 
+#### E:ERROR
+jack@jack-Precision-5560:~/temp/poky/build$ bitbake core-image-minimal
+WARNING: You have included the meta-security layer, but 'security' has not been enabled in your DISTRO_FEATURES. Some bbappend files and preferred version setting may not take effect. See the meta-security README for details on enabling security support.
+Loading cache: 100% |#######################################################################################################################################################################| Time: 0:00:00
+Loaded 4062 entries from dependency cache.
+ERROR: Invalid line '' in sstate manifest '/home/jack/temp/poky/build/tmp/sstate-control/index-qemux86_64'
+
+Summary: There was 1 WARNING message.
+Summary: There was 1 ERROR message, returning a non-zero exit code.
+
+
+SOLUTION
+rm -rf tmp
+
+#### E:ERROR
+
+
 git config --global user.name "Jack Wang"
 
 
@@ -60,12 +77,96 @@ git clone git://github.com/meta-perl/meta-perl.git
 git clone git://git.yoctoproject.org/meta-security.git
 cd meta-security
 git checkout  kirkstone
-#
+# IMAGE_INSTALL_append = " cryptsetup tpm2-tools tpm2-tss tpm2-abrmd tpm2-tss-engine"
+
 cd build
 bitbake-layers add-layer ../meta-security
-echo '"IMAGE_INSTALL += " cryptsetup tpm2-tools tpm2-tss"' >> conf/local.conf 
-echo  'MACHINE_FEATURES += "tpm2"' conf/local.conf
-echo  'IMAGE_INSTALL += " cryptsetup tpm2-tools tpm2-abrmd"' conf/local.conf
+echo 'IMAGE_INSTALL += " cryptsetup tpm2-tools tpm2-tss"' >> conf/local.conf 
+echo 'MACHINE_FEATURES += "tpm2"' >> conf/local.conf
+echo 'IMAGE_INSTALL += " tpm2-abrmd tpm2-tss-engine"' >> conf/local.conf
+
+mkdir -p meta-custom/recipes-security/full-disk-encryption
+cd meta-custom/recipes-security/full-disk-encryption
+
+Create full-disk-encryption_1.0.bb
+SUMMARY = "Full Disk Encryption with LUKS and TPM integration"
+LICENSE = "MIT"
+SRC_URI = "file://setup-encryption.sh"
+
+do_install() {
+    install -d ${D}${sysconfdir}/init.d
+    install -m 0755 ${WORKDIR}/setup-encryption.sh ${D}${sysconfdir}/init.d/setup-encryption
+}
+
+FILES_${PN} += "${sysconfdir}/init.d/setup-encryption"
+
+
+Create setup-encryption.sh:
+
+#!/bin/sh
+
+# Initialize LUKS
+cryptsetup luksFormat /dev/sda2 --key-file /root/keyfile
+
+# Open LUKS partition
+cryptsetup open /dev/sda2 luks_root --key-file /root/keyfile
+
+# Format the encrypted partition
+mkfs.ext4 /dev/mapper/luks_root
+
+# Mount the encrypted partition
+mount /dev/mapper/luks_root /mnt
+
+# TPM2 Integration
+tpm2_createprimary -C o -c primary.ctx
+tpm2_create -G aes256 -u key.pub -r key.priv -C primary.ctx -i /root/keyfile -c key.ctx
+tpm2_evictcontrol -C o -c key.ctx 0x81010001
+
+# Store Key Metadata
+mkdir -p /etc/tpm2
+tpm2_write -o /etc/tpm2/luks-root-key.bin -c key.ctx
+
+#######
+chmod +x setup-encryption.sh
+
+####### Configure initramfs for LUKS and TPM
+Edit your conf/local.conf to add initramfs tools and cryptsetup hooks:
+
+IMAGE_INSTALL += " initramfs-tools"
+
+######## Create the Hook Script:
+
+Create /etc/initramfs-tools/hooks/unlock-tpm:
+
+mkdir -p meta-custom/recipes-security/full-disk-encryption/files
+cat << 'EOF' > meta-custom/recipes-security/full-disk-encryption/files/unlock-tpm
+#!/bin/sh
+PREREQ=""
+prereqs() { echo "$PREREQ"; }
+case $1 in
+prereqs) prereqs; exit 0;;
+esac
+
+. /scripts/functions
+
+echo "Unlocking LUKS partition using TPM..."
+
+tpm2_unseal -c /etc/tpm2/luks-root-key.bin > /keyfile
+cryptsetup open /dev/sda2 luks_root --key-file /keyfile
+EOF
+
+
+4. **Make the Script Executable**:
+
+```bash
+chmod +x meta-custom/recipes-security/full-disk-encryption/files/tpm-unlock
+
+
+BBLAYERS += "/path/to/meta-custom"
+
+
+
+
 
 
 
@@ -86,10 +187,58 @@ bitbake-layers add-layer ../meta-secure-core/meta-encrypted-storage
 bitbake-layers add-layer ../meta-secure-core/meta-efi-secure-boot
 
 
+######## SSH support local.conf
+echo 'IMAGE_INSTALL += " openssh"' >> conf/local.conf
+
+
+### 
+>>>>>>>>
+Port 22
+PermitRootLogin yes
+PasswordAuthentication yes
+<<<<<<<<
+
+./recipes-connectivity/openssh/openssh/sshd_config
+./recipes-connectivity/openssh/openssh/ssh_config
+
+### systemd
+
+vi  meta/recipes-core/systemd/systemd_%.bbappend
+>>>>>>>>
+SYSTEMD_AUTO_ENABLE = "enable"
+SYSTEMD_SERVICE_${PN} = "sshd.service"
+<<<<<<<<
+
+### sshd config
+>>>>>>>>
+mkdir -p meta/recipes-core/ssh/files
+cat <<EOL > meta/recipes-core/ssh/files/sshd_config
+Port 22
+PermitRootLogin yes
+PasswordAuthentication yes
+EOL
+<<<<<<<<
+
+### openssh_%.bbappend 
+>>>>>>>>
+mkdir -p meta/recipes-core/ssh
+cat <<EOL > meta/recipes-core/ssh/openssh_%.bbappend
+FILESEXTRAPATHS_prepend := "\${THISDIR}/files:"
+SRC_URI += "file://sshd_config"
+
+do_install_append() {
+    install -m 0644 \${WORKDIR}/sshd_config \${D}\${sysconfdir}/ssh/sshd_config
+}
+EOL
+<<<<<<<<
+
+
+
+
+
+
+
 bitbake core-image-sato
-
-
-IMAGE_FSTYPES += "iso"
 
 
 ######## LOCAL.CONF ISO + SECURE BOOT
@@ -106,6 +255,7 @@ echo 'SECURE_BOOT_SIGN_KEY_DIR = "/home/jack/SECURE_BOOT_KEYS"' >> conf/local.co
 echo 'SECURE_BOOT_PK = "${SECURE_BOOT_SIGN_KEY_DIR}/PK.crt"' >> conf/local.conf
 echo 'SECURE_BOOT_KEK = "${SECURE_BOOT_SIGN_KEY_DIR}/KEK.crt"' >> conf/local.conf
 echo 'SECURE_BOOT_DB = "${SECURE_BOOT_SIGN_KEY_DIR}/db.crt"' >> conf/local.conf
+echo 'IMAGE_INSTALL += " openssh"' >> conf/local.conf
 
 
 ######## ON THE HOST Create Keys
