@@ -247,7 +247,8 @@ echo 'MACHINE ?= "qemux86-64"' >> conf/local.conf
 echo 'IMAGE_FSTYPES += "iso"' >> conf/local.conf
 echo 'SECURE_BOOT_ENABLE = "1"' >> conf/local.conf
 echo 'SECURE_BOOT_GENSIGN = "1"' >> conf/local.conf
-echo 'SECURE_BOOT_IMAGE_TYPES += "bios"' >> conf/local.conf
+# echo 'SECURE_BOOT_IMAGE_TYPES += "bios"' >> conf/local.conf
+echo 'SECURE_BOOT_IMAGE_TYPES += "uefi kernel"' >> conf/local.conf
 echo 'SECURE_BOOT_ENABLED = "1"' >> conf/local.conf
 echo 'SECURE_BOOT_SIGN_MODE = "custom"' >> conf/local.conf
 echo 'SECURE_BOOT_KEYS_DIR = "/home/jack/SECURE_BOOT_KEYS"' >> conf/local.conf
@@ -259,16 +260,23 @@ echo 'IMAGE_INSTALL += " openssh"' >> conf/local.conf
 
 
 # Enable signing for GRUB
-GRUB_SIGN = "1"
-GRUB_SIGN_KEY = "/path/to/DB.key"
-GRUB_SIGN_CERT = "/path/to/DB.crt"
+######## pesignMYBE NOT NEEDED
+
+cd poky 
+git clone git://git.yoctoproject.org/meta-selinux
+cd meta-selinux
+find . -name "*pesign*"
+
+echo 'GRUB_SIGN = "1"' >> conf/local.conf
+echo 'GRUB_SIGN_KEY = "${SECURE_BOOT_SIGN_KEY_DIR}/DB.key"' >> conf/local.conf
+echo 'GRUB_SIGN_CERT = "${SECURE_BOOT_SIGN_KEY_DIR}/DB.crt"' >> conf/local.conf
 
 # Enable signing for the kernel
-KERNEL_IMAGE_BASE_NAME = "bzImage"
-KERNEL_IMAGETYPE = "bzImage"
-SIGNED_KERNEL_IMAGE = "${KERNEL_IMAGE_BASE_NAME}.signed"
+echo 'KERNEL_IMAGE_BASE_NAME = "bzImage"' >> conf/local.conf
+echo 'KERNEL_IMAGETYPE = "bzImage"' >> conf/local.conf
+echo 'SIGNED_KERNEL_IMAGE = "${KERNEL_IMAGE_BASE_NAME}.signed"' >> conf/local.conf
 
-IMAGE_INSTALL += " pesign"
+echo IMAGE_INSTALL += " pesign"
 
 
 ######## Add sign for Kernel Image
@@ -276,6 +284,15 @@ do_sign_kernel() {
     pesign -s -i ${DEPLOY_DIR_IMAGE}/${KERNEL_IMAGE_BASE_NAME} -o ${DEPLOY_DIR_IMAGE}/${SIGNED_KERNEL_IMAGE} -c db -k ${DEPLOY_DIR_IMAGE}/DB.key -p ${DEPLOY_DIR_IMAGE}/DB.crt
 }
 addtask sign_kernel after do_compile before do_install
+
+
+######## 
+Generate your custom keys:
+
+Platform Key (PK): This key signs the Key Exchange Key (KEK).
+Key Exchange Key (KEK): This key signs the Database (DB) and Database of Revoked Signatures (DBX).
+Database (DB): This key signs the bootloader and other EFI binaries.
+Database of Revoked Signatures (DBX): This is used to revoke keys and binaries.
 
 
 
