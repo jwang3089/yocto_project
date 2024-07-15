@@ -3,6 +3,26 @@ ssh-keygen -t rsa -b 4096 -C "jwang4024@yahoo.com"
 TOKEN: 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
 
 
+
+##### S:ERROR
+ bitbake core-image-minimal
+ERROR: Variable IMAGE_INSTALL_append file: /home/jack/temp/poky/build/conf/local.conf line: 289 contains an operation using the old override syntax. Please convert this layer/metadata before attempting to use with a newer bitbake.
+ERROR: Unable to parse /home/jack/temp/poky/bitbake/lib/bb/__init__.py
+Traceback (most recent call last):
+  File "/home/jack/temp/poky/bitbake/lib/bb/__init__.py", line 185, in fatal:
+         mainlogger.critical(''.join(args), extra=kwargs)
+    >    raise BBHandledException()
+     
+bb.BBHandledException
+
+
+SOLUTION:
+
+"XXXXX_append = " replace with "XXXXX +="
+
+#### E:ERROR
+
+
 git config --global user.name "Jack Wang"
 
 
@@ -36,14 +56,21 @@ bitbake-layers add-layer ../meta-openembedded/meta-perl
 git clone git://github.com/meta-perl/meta-perl.git
 
 
-########  SECURE BOOT
+########  Create a full disk encryption with LUKS partition and disk unlock password bind to TPM 
 git clone git://git.yoctoproject.org/meta-security.git
 cd meta-security
 git checkout  kirkstone
 #
 cd build
 bitbake-layers add-layer ../meta-security
+echo '"IMAGE_INSTALL += " cryptsetup tpm2-tools tpm2-tss"' >> conf/local.conf 
+echo  'MACHINE_FEATURES += "tpm2"' conf/local.conf
+echo  'IMAGE_INSTALL += " cryptsetup tpm2-tools tpm2-abrmd"' conf/local.conf
 
+
+
+
+########  SECURE BOOT
 git clone git@github.com:Wind-River/meta-secure-core.git
 cd meta-secure-core
 git checkout  kirkstone
@@ -56,6 +83,7 @@ bitbake-layers add-layer ../meta-secure-core/meta-tpm2
 bitbake-layers add-layer ../meta-secure-core/meta-efi-secure-boot
 bitbake-layers add-layer ../meta-secure-core/meta-integrity
 bitbake-layers add-layer ../meta-secure-core/meta-encrypted-storage
+bitbake-layers add-layer ../meta-secure-core/meta-efi-secure-boot
 
 
 bitbake core-image-sato
@@ -71,6 +99,9 @@ echo 'IMAGE_FSTYPES += "iso"' >> conf/local.conf
 echo 'SECURE_BOOT_ENABLE = "1"' >> conf/local.conf
 echo 'SECURE_BOOT_GENSIGN = "1"' >> conf/local.conf
 echo 'SECURE_BOOT_IMAGE_TYPES += "bios"' >> conf/local.conf
+echo 'SECURE_BOOT_ENABLED = "1"' >> conf/local.conf
+echo 'SECURE_BOOT_SIGN_MODE = "custom"' >> conf/local.conf
+echo 'SECURE_BOOT_KEYS_DIR = "/home/jack/SECURE_BOOT_KEYS"' >> conf/local.conf
 echo 'SECURE_BOOT_SIGN_KEY_DIR = "/home/jack/SECURE_BOOT_KEYS"' >> conf/local.conf
 echo 'SECURE_BOOT_PK = "${SECURE_BOOT_SIGN_KEY_DIR}/PK.crt"' >> conf/local.conf
 echo 'SECURE_BOOT_KEK = "${SECURE_BOOT_SIGN_KEY_DIR}/KEK.crt"' >> conf/local.conf
