@@ -258,10 +258,51 @@ echo 'SECURE_BOOT_DB = "${SECURE_BOOT_SIGN_KEY_DIR}/db.crt"' >> conf/local.conf
 echo 'IMAGE_INSTALL += " openssh"' >> conf/local.conf
 
 
+# Enable signing for GRUB
+GRUB_SIGN = "1"
+GRUB_SIGN_KEY = "/path/to/DB.key"
+GRUB_SIGN_CERT = "/path/to/DB.crt"
+
+# Enable signing for the kernel
+KERNEL_IMAGE_BASE_NAME = "bzImage"
+KERNEL_IMAGETYPE = "bzImage"
+SIGNED_KERNEL_IMAGE = "${KERNEL_IMAGE_BASE_NAME}.signed"
+
+IMAGE_INSTALL += " pesign"
+
+
+######## Add sign for Kernel Image
+do_sign_kernel() {
+    pesign -s -i ${DEPLOY_DIR_IMAGE}/${KERNEL_IMAGE_BASE_NAME} -o ${DEPLOY_DIR_IMAGE}/${SIGNED_KERNEL_IMAGE} -c db -k ${DEPLOY_DIR_IMAGE}/DB.key -p ${DEPLOY_DIR_IMAGE}/DB.crt
+}
+addtask sign_kernel after do_compile before do_install
+
+
+
+######## HOST TOOLS FRO SECURE BOOT
+sudo apt install efitools
+sudo apt install sbsigntool 
+sudo apt install openssl
+
+
 ######## ON THE HOST Create Keys
 openssl req -new -x509 -newkey rsa:2048 -keyout PK.key -out PK.crt -days 3650 -subj "/CN=Platform Key/"
 openssl req -new -x509 -newkey rsa:2048 -keyout KEK.key -out KEK.crt -days 3650 -subj "/CN=Key Exchange Key/"
 openssl req -new -x509 -newkey rsa:2048 -keyout db.key -out db.crt -days 3650 -subj "/CN=Signature Database Key/"
+
+######## Convert the keys to EFI signature list format:
+cert-to-efi-sig-list PK.crt PK.esl
+cert-to-efi-sig-list KEK.crt KEK.esl
+cert-to-efi-sig-list DB.crt DB.esl
+
+
+######## Create authentication files (signed lists):
+
+sign-efi-sig-list -k PK.key -c PK.crt PK PK.esl PK.auth
+sign-efi-sig-list -k PK.key -c PK.crt KEK KEK.esl KEK.auth
+sign-efi-sig-list -k KEK.key -c KEK.crt db DB.esl DB.auth
+
+
 
 
 
