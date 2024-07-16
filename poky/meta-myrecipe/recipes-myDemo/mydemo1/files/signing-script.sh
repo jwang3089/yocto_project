@@ -1,0 +1,11 @@
+
+#!/bin/sh
+set -e
+
+KERNEL_IMAGE="$1"
+SIGNED_KERNEL_IMAGE="$2"
+PRIVATE_KEY="$3"
+PUBLIC_CERT="$4"
+
+sbsign --key "$PRIVATE_KEY" --cert "$PUBLIC_CERT" --output "$SIGNED_KERNEL_IMAGE" "$KERNEL_IMAGE"
+

@@ -1,14 +1,28 @@
-SUMMARY = "A recipe to execute a custom command"
-DESCRIPTION = "This recipe executes a specified Ubuntu command during the build process"
-LICENSE = "MIT"
-LIC_FILES_CHKSUM = "file://${COMMON_LICENSE_DIR}/MIT;md5=0835ade698e0bcf8506ecda2f7b4f302"
+DESCRIPTION = "Recipe to sign the kernel image for Secure Boot"
 
-# Define a custom task
-do_execute_cmd() {
-    # Replace 'your-command' with the actual Ubuntu command you want to execute
-    echo " THIS SI HACJJJJJJJ"    
+SRC_URI = "file://signing-script.sh"
+S = "${WORKDIR}"
+
+LIC_FILES_CHKSUM = "file://signing-script.sh;md5=5cbfa2805669fd483ba11b5de02ccf6b"
+LICENSE = "MIT"
+
+DEPENDS = "virtual/kernel"
+
+
+inherit kernel-fitimage
+
+
+do_sign_kernel() {
+    echo "JACKWANG do_sign_kernel() Signing the kernel image... )))))"
+    echo "JACKWANG do_sign_kernel() KERNEL_FIT_SIGNING_KEY = ${KERNEL_FIT_SIGNING_KEY}"
+    echo "JACKWANG do_sign_kernel() KERNEL_FIT_SIGNING_CERT= ${KERNEL_FIT_SIGNING_CERT}" 
+    echo "JACKWANG do_sign_kernel() DEPLOY_DIR_IMAGE= ${DEPLOY_DIR_IMAGE}"
+    echo "JACKWANG do_sign_kernel() MACHINE= ${MACHINE}"
+    sleep 10
+    /usr/bin/sbsign --key ${KERNEL_FIT_SIGNING_KEY} --cert ${KERNEL_FIT_SIGNING_CERT} --output ${DEPLOY_DIR_IMAGE}/bzImage-${MACHINE}.signed ${DEPLOY_DIR_IMAGE}/bzImage-${MACHINE}.bin
 }
 
-# Specify when to run the custom task
-addtask execute_cmd after do_compile before do_install
+do_custom_task[depends] += "virtual/kernel:do_compile_kernel"
+
+addtask do_sign_kernel after do_compile before do_install
 
