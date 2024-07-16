@@ -1,0 +1,16 @@
+
+To move forward in the selection process, you will be expected to complete an assessment.
+
+For this assessment you will be asked to create an OS image with the requirements below.
+
+ 
+
+Create an installable Debian/Linux 12 image to an x86_64 hardware. (Example: an iso image). 
+1) Use Bitbake/Yocto based tool to achieve.
+2) Enable secure boot with the ability to use custom keys
+3) Create a full disk encryption with LUKS partition and disk unlock password bind to TPM
+4) Allow user to SSH (protocol)
+5) Implement SWUpdate for OS update
+ 
+
+You will have until the end of the weekend to complete this assessment and submit for Amazon to review. Please provide us a workable image as well as the build package.
