@@ -1,0 +1,174 @@
+Configuring a Marvell switch to assign VLAN1 (with IP1) and VLAN5 (with IP2) to physical port 3 involves several steps. This guide will assume you are using a command-line interface (CLI) to configure the switch. Here's how you can achieve this:
+
+shell
+Copy code
+write memory
+Example Configuration
+Here is a summary of the commands:
+
+shell
+Copy code
+enable
+configure terminal
+
+vlan database
+vlan 1
+vlan 5
+exit
+
+interface ethernet 0/3
+switchport mode trunk
+switchport trunk allowed vlan add 1,5
+exit
+
+interface vlan 1
+ip address 192.168.1.1 255.255.255.0
+exit
+
+interface vlan 5
+ip address 192.168.5.1 255.255.255.0
+exit
+
+write memory
+
+
+
+
+configure marvell switch vlanid20(IP1) and vlanid30(ip2) for port 3 and routed to vlanid50(IP3) port 10 any tagging is needed??
+
+enable
+configure terminal
+
+1) Create all the Vlans
+vlan database
+vlan 20
+vlan 30
+vlan 50
+exit
+
+2) create an IP address per Vlanid
+interface vlan 20
+ip address 192.168.20.1 255.255.255.0
+exit
+
+3) create an IP address per Vlanid
+interface vlan 30
+ip address 192.168.30.1 255.255.255.0
+exit
+
+4) create an IP address per Vlanid
+interface vlan 50
+ip address 192.168.50.1 255.255.255.0
+exit
+
+5) Add VlanID 20, and 30 to Physical Port 3, since it is 2 ports, trunk needs to be enable
+interface ethernet 0/3
+switchport mode trunk
+switchport trunk allowed vlan add 20,30
+exit
+
+5) Add VlanID 50, to Physical Port 10
+interface ethernet 0/10
+switchport mode access
+switchport access vlan 50
+exit
+
+ip routing
+
+write memory
+
+
+
+configure marvell switch vlanid20(IP1) and vlanid30(ip2) for port 3 and routed to vlanid50(ip3) port 10 and vlanid60 (ip4) port 15 any tagging is needed??
+
+
+Assumptions:
+IP1 for VLAN 20.
+IP2 for VLAN 30.
+IP3 for VLAN 50.
+IP4 for VLAN 60.
+Port 3 is a trunk port carrying traffic for VLAN 20 and VLAN 30.
+Port 10 is an access port for VLAN 50.
+Port 15 is an access port for VLAN 60.
+The switch will perform inter-VLAN routing.
+
+1) Create VlanId's
+
+enable
+configure terminal
+
+vlan database
+vlan 20
+vlan 30
+vlan 50
+vlan 60
+exit
+
+2) Configure the Physical port to be trunk or switch
+
+interface ethernet 0/3
+switchport mode trunk
+switchport trunk allowed vlan add 20,30
+exit
+
+interface ethernet 0/10
+switchport mode access
+switchport access vlan 50
+exit
+
+interface ethernet 0/15
+switchport mode access
+switchport access vlan 60
+exit
+
+3) Assign IP address for all the VlanId's
+
+interface vlan 20
+ip address 192.168.20.1 255.255.255.0
+exit
+
+interface vlan 30
+ip address 192.168.30.1 255.255.255.0
+exit
+
+interface vlan 50
+ip address 192.168.50.1 255.255.255.0
+exit
+
+
+interface vlan 60
+ip address 192.168.60.1 255.255.255.0
+exit
+
+
+4) Enable switch, it mean any data coming from any port , formward it
+ip routing
+
+write memory
+
+
+Summary
+Before Forwarding: The packet has a VLAN tag indicating VLAN 20 or VLAN 30.
+After Forwarding: The packet’s VLAN tag changes to VLAN 50 or VLAN 60, depending on the port it is forwarded to.
+
+PCAP:
+
+| Destination MAC | Source MAC          | Ethertype (0x8100) | VLAN Tag (VLAN 20) | Payload | FCS |
+|-----------------|---------------------|--------------------|--------------------|---------|-----|
+| aa:bb:cc:dd:ee:ff | 11:22:33:44:55:66 | 0x8100             | 0x0014             | Data    | CRC |
+
+
+| Destination MAC | Source MAC          | Ethertype (0x8100) | VLAN Tag (VLAN 30) | Payload | FCS |
+|-----------------|---------------------|--------------------|--------------------|---------|-----|
+| aa:bb:cc:dd:ee:ff | 11:22:33:44:55:66 | 0x8100             | 0x001E             | Data    | CRC |
+
+
+| Destination MAC | Source MAC          | Ethertype (0x8100) | VLAN Tag (VLAN 50) | Payload | FCS |
+|-----------------|---------------------|--------------------|--------------------|---------|-----|
+| aa:bb:cc:dd:ee:ff | 11:22:33:44:55:66 | 0x8100             | 0x0032             | Data    | CRC |
+
+
+| Destination MAC | Source MAC          | Ethertype (0x8100) | VLAN Tag (VLAN 60) | Payload | FCS |
+|-----------------|---------------------|--------------------|--------------------|---------|-----|
+| aa:bb:cc:dd:ee:ff | 11:22:33:44:55:66 | 0x8100             | 0x003C             | Data    | CRC |
+
