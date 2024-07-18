@@ -172,3 +172,59 @@ PCAP:
 |-----------------|---------------------|--------------------|--------------------|---------|-----|
 | aa:bb:cc:dd:ee:ff | 11:22:33:44:55:66 | 0x8100             | 0x003C             | Data    | CRC |
 
+
+
+Overview:
+The Fortinet FortiSwitch-2048F is a Layer 2/3 switch compatible with FortiGate controllers, featuring a high-performance configuration of 48x 25G SFP28, 8x 100G QSFP28, and 2x 10G SFP+ ports, complete with dual AC power supplies for optimal reliability and scalability in high-demand environments.
+
+High-Density Connectivity: 48x 25G SFP28 ports for extensive high-speed network connections.
+Ultra-Fast Uplinks: 8x 100G QSFP28 ports for maximum bandwidth and superior data transfer rates.
+Additional Flexibility: 2x 10G SFP+ ports for additional connection options.
+Dual Power Supplies: Ensures continuous operation with redundant power sources.
+FortiGate Integration: Fully manageable via FortiGate for comprehensive security and network management.
+
+
+
+
+
+SFP, SFP+, SFP28, QSFP+, and QSFP28 are types of transceiver modules used in networking equipment to connect and transmit data over various types of network cables. They differ in terms of speed, form factor, and intended use. Here’s a breakdown of each:
+
+1. SFP (Small Form-Factor Pluggable)
+Speed: Up to 1 Gbps (Gigabit Ethernet)
+Form Factor: Compact and hot-swappable; 2.2 x 0.8 inches (56.5 x 22.5 mm)
+Applications: Gigabit Ethernet, Fibre Channel, SONET, and other applications requiring up to 1 Gbps speeds.
+Connector: LC or SC
+Typical Wavelengths: 850 nm (for short-range) and 1310 nm (for medium-range)
+2. SFP+ (Small Form-Factor Pluggable Plus)
+Speed: Up to 10 Gbps
+Form Factor: Similar to SFP but designed for higher speeds; also compact and hot-swappable.
+Applications: 10 Gigabit Ethernet, 10-Gigabit Fibre Channel, and other 10 Gbps applications.
+Connector: LC
+Typical Wavelengths: 850 nm (for short-range) and 1310 nm (for medium-range), with some SFP+ modules supporting longer wavelengths.
+3. SFP28
+Speed: Up to 25 Gbps
+Form Factor: Similar to SFP and SFP+, but designed for 25 Gbps speeds; compact and hot-swappable.
+Applications: 25 Gigabit Ethernet and other 25 Gbps applications.
+Connector: LC
+Typical Wavelengths: 850 nm (for short-range) and 1310 nm (for medium-range)
+4. QSFP+ (Quad Small Form-Factor Pluggable Plus)
+Speed: Up to 40 Gbps (4x10 Gbps channels)
+Form Factor: Larger than SFP and SFP+; typically used in high-density applications; 3.1 x 0.8 inches (79 x 22.5 mm)
+Applications: 40 Gigabit Ethernet, 40-Gigabit Fibre Channel, and other 40 Gbps applications.
+Connector: MTP/MPO (multi-fiber connectors)
+Typical Wavelengths: 850 nm (for short-range) and 1310 nm (for medium-range)
+5. QSFP28
+Speed: Up to 100 Gbps (4x25 Gbps channels)
+Form Factor: Similar to QSFP+, but designed for 100 Gbps speeds; still larger and used in high-density applications.
+Applications: 100 Gigabit Ethernet, 100-Gigabit Fibre Channel, and other 100 Gbps applications.
+Connector: MTP/MPO
+Typical Wavelengths: 850 nm (for short-range), 1310 nm (for medium-range), and sometimes 1550 nm (for long-range)
+Summary of Key Differences
+
+Feature		SFP				SFP+				SFP28		QSFP+		QSFP28
+Speed		1 Gbps				10 Gbps				25 Gbps		40 Gbps		100 Gbps
+Form Factor	Compact, hot-swappable	Similar to SFP	Similar to SFP+	Larger, high-density	Similar to QSFP+
+Applications	1G Ethernet, Fibre Channel	10G Ethernet, 10G Fibre Channel	25G Ethernet	40G Ethernet	100G Ethernet
+Connector	LC or SC	LC	LC	MTP/MPO	MTP/MPO
+Typical Wavelengths	850 nm, 1310 nm	850 nm, 1310 nm	850 nm, 1310 nm	850 nm, 1310 nm	850 nm, 1310 nm, 1550 nm
+
