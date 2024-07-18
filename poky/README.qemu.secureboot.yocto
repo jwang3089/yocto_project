@@ -57,6 +57,9 @@ MACHINE ?= "qemux86-64"
 
 sudo apt install zstd
 
+sudo apt-get install expect
+
+
 
 ######## openembedded
 git clone git://git.openembedded.org/meta-openembedded
@@ -235,6 +238,20 @@ EOL
 
 
 
+expect :
+
+#!/usr/bin/expect -f
+set passphrase "your_passphrase_here"
+
+spawn sbsign --key /home/jack/SECURE_BOOT_KEYS/PK.key --cert /home/jack/SECURE_BOOT_KEYS/PK.crt --output bzImage-qemux86-64.bin.signed bzImage-qemux86-64.bin
+expect "Enter PEM pass phrase:"
+send "jack\r"
+interact
+
+
+
+
+
 
 
 
@@ -257,9 +274,106 @@ echo 'SECURE_BOOT_PK = "${SECURE_BOOT_SIGN_KEY_DIR}/PK.crt"' >> conf/local.conf
 echo 'SECURE_BOOT_KEK = "${SECURE_BOOT_SIGN_KEY_DIR}/KEK.crt"' >> conf/local.conf
 echo 'SECURE_BOOT_DB = "${SECURE_BOOT_SIGN_KEY_DIR}/db.crt"' >> conf/local.conf
 echo 'IMAGE_INSTALL += " openssh"' >> conf/local.conf
+echo 'MACHINE_FEATURES += " uefi"' >> conf/local.conf
+echo 'IMAGE_FSTYPES += "uefi"' >> conf/local.conf
+
+# Enable kernel image signing
+# openssl req -new -x509 -newkey rsa:2048 -keyout PK.key -out PK.crt -days 3650 -subj "/CN=Platform Key/"
+# openssl req -new -x509 -newkey rsa:2048 -keyout private-key.pem -outform PEM -out public-cert.pem -nodes -days 36500 -subj "/CN=Yocto Kernel Signing/"
+
+echo 'KERNEL_CLASSES += "kernel-fitimage"' >> conf/local.conf
+
+# Path to the private key
+echo 'KERNEL_FIT_SIGNING_KEY = "${SECURE_BOOT_SIGN_KEY_DIR}/PK.key"' >> conf/local.conf
+
+# Path to the public key (certificate)
+echo 'KERNEL_FIT_SIGNING_CERT = "${SECURE_BOOT_SIGN_KEY_DIR}/PK.crt"' >> conf/local.conf
+
+echo 'BBDEBUG = "yes"' >> >> conf/local.conf
 
 
-# Enable signing for GRUB
+###########################################################################################SECURE BOOT KENREL RECIPE 
+DESCRIPTION = "Recipe to sign the kernel image for Secure Boot"
+
+SRC_URI = "file://signing-script.sh"
+S = "${WORKDIR}"
+
+LIC_FILES_CHKSUM = "file://signing-script.sh;md5=5cbfa2805669fd483ba11b5de02ccf6b"
+LICENSE = "MIT"
+
+DEPENDS = "virtual/kernel"
+
+
+inherit kernel-fitimage
+
+
+do_install() {
+    echo "JACKWANG: do_install() Signing the kernel image... )))))"
+    install -d ${D}${bindir}
+    install -m 0755 ${WORKDIR}/signing-script.sh ${D}${bindir}/signing-script.sh
+}
+
+do_sign_kernel() {
+    echo "JACKWANG do_sign_kernel() Signing the kernel image... )))))"
+    eleep 10
+    sbsign --key ${KERNEL_FIT_SIGNING_KEY} --cert ${KERNEL_FIT_SIGNING_CERT} --output ${DEPLOY_DIR_IMAGE}/bzImage-${MACHINE}.signed ${DEPLOY_DIR_IMAGE}/bzImage-${MACHINE}.bin
+}
+
+do_custom_task[depends] += "virtual/kernel:do_compile_kernel"
+
+addtask sign_kernel after after do_install before do_deploy
+
+#################################################################################################################################################################################
+
+########
+bitbake -c clean your-recipe 
+bitbake your-recipe
+
+
+
+
+
+
+######## check kernel with Secure boot
+sudo apt-get install sbsigntool
+sbverify --list bzImage
+openssl req -new -x509 -newkey rsa:2048 -keyout MOK.priv -outform DER -out MOK.der -nodes -days 36500 -subj "/CN=Kernel Signing/"
+sbsign --key MOK.priv --cert MOK.der --output bzImage-qemux86-64.signed.bin bzImage-qemux86-64.bin
+sbverify --list bzImage-qemux86-64.signed.bin
+
+
+
+
+######## EFI download
+
+vi meta-openembedded/meta-networking/recipes-core/images/meta-networking-image.bb
+vi meta-openembedded/meta-python/recipes-core/images/meta-python-image-base.bb
+vi meta/recipes-core/images/core-image-ptest-fast.bb
+vi /home/jack/temp/poky/meta-secure-core/meta/recipes-core/images/secure-core-image.bb
+vi /home/jack/temp/poky/meta-openembedded/meta-perl/recipes-perl/images/meta-perl-image.bb
+vi /home/jack/temp/poky/meta/recipes-graphics/images/core-image-weston.bb
+vi /home/jack/temp/poky/meta/recipes-extended/images/core-image-full-cmdline.bb
+vi /home/jack/temp/poky/meta/recipes-sato/images/core-image-sato.bb
+vi /home/jack/temp/poky/meta-openembedded/meta-oe/recipes-core/images/meta-oe-ptest-image.bb
+vi /home/jack/temp/poky/meta-security/recipes-core/images/security-test-image.bb
+vi /home/jack/temp/poky/meta-openembedded/meta-python/recipes-core/images/meta-python-image.bb
+vi /home/jack/temp/poky/meta-secure-core/meta/recipes-core/images/secure-core-image.bb
+vi /home/jack/temp/poky/meta-openembedded/meta-oe/recipes-core/images/meta-oe-image-base.bb
+
+
+>>>>>>>>
+inherit core-image
+IMAGE_CMD_uefi () {
+    # Define your UEFI image creation command here
+    # This could involve copying specific files or configuring UEFI-specific settings
+    cp ${DEPLOY_DIR_IMAGE}/core-image-minimal-${MACHINE}.uefi ${IMGDEPLOYDIR}/core-image-minimal-${MACHINE}.uefi
+}
+
+IMAGE_FSTYPES += "uefi"
+
+<<<<<<<<
+
+# Enable signing for GRUB NOT NEEDED
 ######## pesignMYBE NOT NEEDED
 
 cd poky 
@@ -345,4 +459,40 @@ Common targets are:
 
 ######## CRETA ISO IMAGE USING WIC
 # wic create mkefi --image-name core-image-minimal --bootimg-efi --kernel-efi --rootfs-dir=tmp/deploy/images/genericx86-64 --outdir=tmp/deploy/images/genericx86-64
+
+
+
+
+####### KERNEL CHANGES
+
+find . -name "*linux*.bb"
+bitbake -e linux-yocto | grep ^WORKDIR=
+
+
+
+// DO CLEAN ONCE
+bitbake -c clean linux-yocto
+bitbake -c clean virtual/kernel
+
+bitbake -c fetch linux-yocto
+bitbake -c unpack linux-yocto
+bitbake -c fetch virtual/kernel
+bitbake -c unpack virtual/kernel
+
+
+vi /home/jack/temp/poky/build/tmp/work-shared/qemux86-64/kernel-source/init/main.c
+
+   printk(KERN_INFO "JACKWANG0: Hello from early boot!\n");
+
+vi /home/jack/temp/poky/build/tmp/work-shared/qemux86-64/kernel-source/arch/x86/kernel/head_64.S
+
+
+bitbake -c compile -f linux-yocto
+bitbake -c compile -f virtual/kernel 
+bitbake -c deploy linux-yocto
+bitbake -c deploy virtual/kernel 
+
+bitbake core-image-minimal 
+runqemu qemux86-64
+
 
