@@ -469,6 +469,17 @@ openssl enc -aes-256-cbc -pass file=/etc/encryption/rootfs.key -out /home/jack/S
 openssl enc -aes-256-cbc -pbkdf2 -in /home/jack/temp/poky/build/tmp/deploy/images/qemux86-64/core-image-minimal-qemux86-64-20240722172208.rootfs.ext4 -out /home/jack/SECURE_STORAGE_KEYS/rootfs.enc -pass file:/home/jack/SECURE_STORAGE_KEYS/roots_keys
 ### Decrypt Roots Filesystem Imagw
 openssl enc -d -aes-256-cbc -pbkdf2 -pass file:/home/jack/SECURE_STORAGE_KEYS/roots_keys  -in /home/jack/SECURE_STORAGE_KEYS/rootfs.enc  -out /home/jack/SECURE_STORAGE_KEYS/rootfs.dec 
+### Decrypt Rootfs from initramfs
+#!/bin/sh
+
+
+# Decrypt the rootfs using the provided key
+openssl enc -d -aes-256-cbc -pass file:/etc/encryption/rootfs.key -in /mnt/rootfs.enc -out /mnt/rootfs
+
+# Mount the decrypted rootfs
+mount -o loop /mnt/rootfs /newroot
+exec switch_root /newroot /sbin/init
+
 
 
 
