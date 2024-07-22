@@ -462,6 +462,27 @@ Common targets are:
 
 
 
+######## create a secure leys for secure storage
+##  Generates a 256-bit key (32 bytes)
+openssl enc -aes-256-cbc -pass file=/etc/encryption/rootfs.key -out /home/jack/SECURE_STORAGE_KEYS/roots_keys
+##  Encrypt the Root Filesystem Image
+openssl enc -aes-256-cbc -pbkdf2 -in /home/jack/temp/poky/build/tmp/deploy/images/qemux86-64/core-image-minimal-qemux86-64-20240722172208.rootfs.ext4 -out /home/jack/SECURE_STORAGE_KEYS/rootfs.enc -pass file:/home/jack/SECURE_STORAGE_KEYS/roots_keys
+### Decrypt Roots Filesystem Imagw
+openssl enc -d -aes-256-cbc -pbkdf2 -pass file:/home/jack/SECURE_STORAGE_KEYS/roots_keys  -in /home/jack/SECURE_STORAGE_KEYS/rootfs.enc  -out /home/jack/SECURE_STORAGE_KEYS/rootfs.dec 
+
+
+
+
+## local.conf
+## core-image-minimal-qemux86.ext4
+IMAGE_INSTALL += " cryptsetup"
+INITRAMFS_IMAGE_BUNDLE = "1"
+INITRAMFS_IMAGE = "core-image-minimal-initramfs"
+
+
+
+
+
 
 ####### KERNEL CHANGES
 
@@ -494,5 +515,18 @@ bitbake -c deploy virtual/kernel
 
 bitbake core-image-minimal 
 runqemu qemux86-64
+
+
+
+UFEI:
+
+sudo apt install qemu-system-x86
+sudo apt-get install ovmf
+
+qemu-system-x86_64   -bios /usr/share/OVMF/OVMF_CODE.fd   -drive file=path/to/your/image.qcow2,format=qcow2   -m 512   -net nic   -net user
+
+runqemu nographic core-image-minimal qemux86-64
+
+Ctrl-a release and type x
 
 
